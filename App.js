@@ -32,7 +32,7 @@ export default class Game extends React.Component {
       gameStarted: false,
       gameOver: false,
       isReady: false,
-      startScreenPos: new Animated.Value(-300),
+      startScreenPos: new Animated.Value(startScreenHiddenPos),
       score: 0
     };
 
@@ -54,7 +54,6 @@ export default class Game extends React.Component {
         return;
 
       for(cloud of this.refs.cloudManager.getCloudPositions()) {
-        //console.log('cloud',cloud);
         let birdDim = this.refs.bird.getDimensions();
 
         if(cloud.inViewport &&
@@ -62,8 +61,6 @@ export default class Game extends React.Component {
            birdDim.x + birdDim.width > cloud.x &&
            birdDim.y < cloud.y + cloud.height &&
            birdDim.height + birdDim.y > cloud.y) {
-          //console.log('bird',birdDim);
-          //console.log('cloud',cloud);
           this.gameOver();
         }
 
@@ -76,7 +73,6 @@ export default class Game extends React.Component {
   }
 
   gameOver() {
-    console.log('Game Over', this.refs.cloudManager.cloudsAvoided);
     this.refs.bird.gameOver();
     this.refs.cloudManager.gameOver();
     this.setState({
@@ -114,7 +110,6 @@ export default class Game extends React.Component {
     this.hideStartScreen();
     this.refs.bird.jump(true);
     this.refs.cloudManager.begin();
-    console.log('new game')
   }
 
   async _cacheResourcesAsync() {
@@ -170,8 +165,11 @@ export default class Game extends React.Component {
           <Animated.View style={[styles.startScreen, {'top': this.state.startScreenPos}]}>
             <Text style={styles.startScreenHeaderText}>Enemy Clouds</Text>
             <TouchableOpacity style={styles.newGameBtn} onPress={()=>this.newGame()}>
-              <Text style={styles.newGameBtnText}>Start Game</Text>
+              <Text style={styles.newGameBtnText}>{ this.state.gameOver ? 'New Game' : 'Start Game' }</Text>
             </TouchableOpacity>
+            <Text style={[styles.gameOverText,{opacity:this.state.gameOver ? 1 : 0}]}>
+              Game Over
+            </Text>
             <Text style={[styles.gameOverScoreText,{opacity:this.state.gameOver ? 1 : 0}]}>
               Your Score: {this.state.score}
             </Text>
@@ -223,7 +221,8 @@ const styles = StyleSheet.create({
   newGameBtnText: {
     fontSize: 25,
     textAlign: 'center',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    color: '#008FBF'
   },
   startScreen: {
     marginTop: 70
@@ -231,11 +230,20 @@ const styles = StyleSheet.create({
   startScreenHeaderText: {
     fontSize: 40,
     fontWeight: 'bold',
-    textAlign: 'center'
+    textAlign: 'center',
+    color: '#008FBF'
   },
-  gameOverScoreText: {
+  gameOverText: {
     fontSize: 30,
     textAlign: 'center',
-    marginTop: 40
+    marginTop: 40,
+    color: '#008FBF',
+    fontWeight: 'bold'
+  },
+  gameOverScoreText: {
+    fontSize: 26,
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#008FBF'
   }
 });

@@ -36,7 +36,6 @@ class Bird extends React.Component {
     }
 
     gameOverAnimation() {
-      console.log('game over animating...')
       Animated.parallel([
         Animated.timing(
           this.state.y,
@@ -58,7 +57,6 @@ class Bird extends React.Component {
           y: new Animated.Value(hiddenY),
           rotate: new Animated.Value(0)
         });
-        console.log('resetting bird')
       });
     }
 
