@@ -6,15 +6,20 @@ import {
   View,
   StatusBar,
   Platform,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   Dimensions,
-  Alert
+  Animated
 } from 'react-native';
 
-import Cloud from './Cloud';
+import { Asset, AppLoading } from 'expo';
+
 import CloudManager from './CloudManager';
 import Bird from './Bird';
-import GameElements from './GameElements';
+
+const deviceHeight = Dimensions.get('window').height;
+const startScreenHiddenPos = deviceHeight+400;
+const startScreenVisiblePos = 0;
 
 export default class Game extends React.Component {
 
@@ -22,6 +27,14 @@ export default class Game extends React.Component {
     super(props);
 
     this.grassImgSrc = require('./resources/grass.png');
+
+    this.state = {
+      gameStarted: false,
+      gameOver: false,
+      isReady: false,
+      startScreenPos: new Animated.Value(-300),
+      score: 0
+    };
 
     this.components = {
       bird: null,
@@ -32,30 +45,149 @@ export default class Game extends React.Component {
 
   componentDidMount() {
     this.checkForCollisions();
+    this.showStartScreen();
   }
 
   checkForCollisions() {
-    //console.log(this.refs.cloudManager);
-    this.refs.cloudManager.state.clouds.map((cloud) => {
-      //console.log(cloud);
-    });
     setInterval(() => {
-      //console.log(this.refs.bird.getDimensions());
-    },1000);
+      if(!this.state.gameStarted)
+        return;
+
+      for(cloud of this.refs.cloudManager.getCloudPositions()) {
+        //console.log('cloud',cloud);
+        let birdDim = this.refs.bird.getDimensions();
+
+        if(cloud.inViewport &&
+           birdDim.x < cloud.x+cloud.width && 
+           birdDim.x + birdDim.width > cloud.x &&
+           birdDim.y < cloud.y + cloud.height &&
+           birdDim.height + birdDim.y > cloud.y) {
+          //console.log('bird',birdDim);
+          //console.log('cloud',cloud);
+          this.gameOver();
+        }
+
+      }
+    },50);
   }
 
   birdJump() {
     this.refs.bird.jump();
   }
 
+  gameOver() {
+    console.log('Game Over', this.refs.cloudManager.cloudsAvoided);
+    this.refs.bird.gameOver();
+    this.refs.cloudManager.gameOver();
+    this.setState({
+      gameOver: true,
+      gameStarted: false
+    });
+    setTimeout(() => {
+      this.showStartScreen();
+    }, 1500);
+  }
+
+  hideStartScreen() {
+    Animated.timing(
+      this.state.startScreenPos,
+      {
+        duration: 500,
+        toValue: startScreenHiddenPos
+     }).start();
+  }
+
+  showStartScreen() {
+    Animated.timing(
+      this.state.startScreenPos,
+      {
+        duration: 500,
+        toValue: startScreenVisiblePos
+     }).start();
+  }
+
+  newGame() {
+    this.setState({
+      gameStarted: true,
+      gameOver: false
+    });
+    this.hideStartScreen();
+    this.refs.bird.jump(true);
+    this.refs.cloudManager.begin();
+    console.log('new game')
+  }
+
+  async _cacheResourcesAsync() {
+    const images = [
+        require('./resources/grass.png'),
+        require('./resources/bird.png'),
+        require('./resources/cloud.png')
+    ];
+
+    const cacheImages = images.map((image) => {
+      return Asset.fromModule(image).downloadAsync();
+    });
+    return Promise.all(cacheImages)
+
+  }
+
+  _handleLoadingError(error) {
+    // In this case, you might want to report the error to your error
+    // reporting service, for example Sentry
+    console.warn(error);
+  }
+
+  _handleFinishLoading() {
+    this.setState({ isReady: true });
+  }
+
+  updateScore(score) {
+    setTimeout(() => {
+      this.setState({
+        score: score
+      });
+    },1500);
+  }
+
   render() {
+
+    if (!this.state.isReady) {
+      return (
+        <AppLoading
+          startAsync={this._cacheResourcesAsync}
+          onFinish={() => this.setState({ isReady: true })}
+          onError={console.warn}
+        />
+      )
+    }
+
     return (
       <TouchableWithoutFeedback onPress={()=>this.birdJump()}>
         <View style={styles.container}>
+
           <StatusBar barStyle="dark-content" />
 
-          <Bird ref="bird" />
-          <CloudManager ref="cloudManager" />
+          <Animated.View style={[styles.startScreen, {'top': this.state.startScreenPos}]}>
+            <Text style={styles.startScreenHeaderText}>Enemy Clouds</Text>
+            <TouchableOpacity style={styles.newGameBtn} onPress={()=>this.newGame()}>
+              <Text style={styles.newGameBtnText}>Start Game</Text>
+            </TouchableOpacity>
+            <Text style={[styles.gameOverScoreText,{opacity:this.state.gameOver ? 1 : 0}]}>
+              Your Score: {this.state.score}
+            </Text>
+          </Animated.View>
+
+          <Bird 
+            ref="bird" 
+            gameStarted={this.state.gameStarted} 
+            gameOver={this.state.gameOver} 
+          />
+          <CloudManager 
+            ref="cloudManager" 
+            gameStarted={this.state.gameStarted} 
+            gameOver={this.state.gameOver} 
+            setScore={(score)=>{this.updateScore(score)}}
+          />
 
           <Image source={this.grassImgSrc} style={styles.grass} />
         </View>
@@ -77,6 +209,33 @@ const styles = StyleSheet.create({
   grass: {
     position: 'absolute',
     bottom: 0,
-    left: -80
+    left: -80,
+    zIndex: 2
+  },
+  newGameBtn: {
+    padding: 25,
+    backgroundColor: '#CCF2FF',
+    borderRadius: 20,
+    marginTop: 60,
+    borderWidth: 1,
+    borderColor: '#ABEAFF'
+  },
+  newGameBtnText: {
+    fontSize: 25,
+    textAlign: 'center',
+    fontWeight: 'bold'
+  },
+  startScreen: {
+    marginTop: 70
+  },
+  startScreenHeaderText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    textAlign: 'center'
+  },
+  gameOverScoreText: {
+    fontSize: 30,
+    textAlign: 'center',
+    marginTop: 40
   }
 });

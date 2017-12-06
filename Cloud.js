@@ -2,19 +2,19 @@ import React from 'react';
 import { Image, StyleSheet, Dimensions, Animated, Easing, TouchableWithoutFeedback } from 'react-native';
 
 const deviceWidth = Dimensions.get('window').width;
-const startX = deviceWidth+10;
+const startX = deviceWidth;
 const defaultY = 30;
+const defaultSpeed = 5000;
 
 class Cloud extends React.Component {
 
     constructor(props) {
         super(props);
 
-        this.imgSrc = require('./resources/cloud.png');
         this.width = 150;
         this.height = 79;
 
-        this.duration = this.props.dur || 4000; // milliseconds to move across screen
+        this.speed = this.props.speed || defaultSpeed;  // milliseconds to move across the screen
 
         this.state = {
           x: new Animated.Value(startX),
@@ -23,19 +23,26 @@ class Cloud extends React.Component {
         this.state.x.addListener(({value}) => this._value = value);
         this.state.y.addListener(({value}) => this._value = value);
 
-
+        this.startMoving();
     }
 
     componentDidMount() {
-      this.startMoving();
+      
+    }
+
+    isInViewport() {
+      return (this.state.x._value + this.width > 0) && this.state.x._value < deviceWidth;
     }
 
     getDimensions() {
-      return [this.state.x._value, this.state.y._value, this.width, this.height];
-    }
-
-    checkIfCollidedWith(x, y) {
-      console.log('did collide with?', x, y);
+      return {
+        x: this.state.x._value, 
+        y: this.state.y._value,
+        width: this.width, 
+        height: this.height,
+        inViewport: this.isInViewport(),
+        id: this.props.id
+      };
     }
 
     startMoving() {
@@ -43,32 +50,28 @@ class Cloud extends React.Component {
         this.state.x, 
         {
           toValue: 0-this.width,
-          duration: this.duration,
-          easing: Easing.linear,
-          useNativeDriver: true
+          duration: this.speed,
+          easing: Easing.linear
         }
-      ).start();
+      ).start(() => {
+        if(!this.isInViewport())
+          this.props.offScreen();
+      });
     }
 
     getStyle() {
       return [
         styles.cloud,
         {
-          transform: [
-            {translateX: this.state.x},
-            {translateY: this.state.y}
-          ]
+          left: this.state.x,
+          top: this.state.y
         }
       ];
     }
 
-    isInViewport() {
-      return (this.state.x + this.width > 0) && this.state.x < deviceWidth;
-    }
-
     render() {
         return (
-            <Animated.Image source={ this.imgSrc } style={ this.getStyle() } />
+            <Animated.Image source={ this.props.imgSrc } style={ this.getStyle() } />
         );
     }
 }
@@ -76,13 +79,13 @@ class Cloud extends React.Component {
 const styles = StyleSheet.create({
   cloud: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    top: 0,
+    left: deviceWidth,
     width: 150,
     height: 79,
-    borderWidth: 1,
-    borderColor: '#ff0000',
-    borderRadius: 30
+    zIndex: 2
+    //borderWidth: 1,
+    //borderColor: '#ff0000'
   }
 });
 

@@ -1,77 +1,148 @@
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Image, StyleSheet, Text } from 'react-native';
 import Bird from './Bird';
 import Cloud from './Cloud';
 
 const firstY = 40;
-const baseDur = 4000;
+const baseSpeed = 5000;
+const maxSpeed = 2000;
+const spawnIntervalTime = 3500;
+const imgSrc = require('./resources/cloud.png');
 
 class CloudManager extends React.Component {
 
   constructor(props) {
     super(props);
-    this.birdComponent = props.birdComponent;
     this.prevId = 0;
     this.lastY = 0;
-    this.components = {
-      bird: null
-    };
+    this.spawnInterval = null;
+    this.spawnCounter = 0;
+    this.cloudRefs = [];
     this.state = {
-        clouds: []
+        clouds: [],
+        score: 0
     };
+  }
+
+  componentDidUpdate() {
+    //console.log('update cloudmanager')
+  }
+
+  gameOver() {
+    this.cloudRefs = [];
+    this.prevId = 0;
+    this.spawnCounter = 0;
+    this.setState({
+      clouds: []
+    });
+    this.props.setScore(this.state.score);
   }
 
   componentDidMount() {
-    //this.props.onRef(this);
-    // spawn first cloud!
-    this.spawnCloud();
     this.beginSpawning();
   }
 
-  componentWillUnmount() {
-    this.props.onRef(undefined);
+  begin() {
+    this.setState({
+      score: 0
+    });
   }
 
-  deleteFirstCloud() {
-      if(this.state.clouds.length <= 1)
-          return;
-      let state = this.state;
-      state.clouds.splice(0,1);
-      this.setState(state);
+  getCloudPositions() {
+    let pos = [];
+    this.cloudRefs.forEach((cloud) => {
+      if(cloud) {
+        pos.push(cloud.getDimensions());
+      }
+    });
+    return pos;
   }
 
   beginSpawning() {
-      setInterval(() => {
+
+      if(this.spawnInterval)
+        return;
+      
+      if(this.props.gameStarted)
+        this.spawnCloud();
+
+      this.spawnInterval = setInterval(() => {
+          if(!this.props.gameStarted)
+            return;
           this.spawnCloud();
-      }, 3000);
+      }, spawnIntervalTime);
+  }
+
+  randBetween(max,min) {
+    return (Math.random() * (max - min) + min);
   }
 
   spawnCloud() {
-    //console.log(this.props.birdComponent);
-    this.deleteFirstCloud();
+    //console.log('spawning cloud');
+    //this.spawnCounter++;
     let id = this.prevId+1;
     let clouds = this.state.clouds;
-    let y = id == 1 ? firstY : (this.lastY = Math.random() * (200 - 100) + 100);
-    let dur = baseDur - Math.random() * 2000;
+    let num = this.randBetween(1,2)-3;
+    let y = (id == 1 ? firstY : this.randBetween(25, 300));
+    this.lastY = y;
+    let speed = baseSpeed;// - this.spawnCounter * 50;
+    //speed = speed < maxSpeed ? maxSpeed : speed;
+    
+    if(this.state.clouds.length > 1) 
+      clouds.splice(0,1);// delete first one
+
     clouds.push({
       y: y,
-      dur: dur,
+      speed: speed,
       key: id
-    })
+    });
+
     this.setState({
         clouds: clouds
     });
     this.prevId = id;
   }
 
-  render() {
-    let c = [];
-    this.state.clouds.forEach( (cloud) => {
-      c.push(<Cloud key={cloud.key} y={cloud.y} duration={cloud.dur} ref={'cloud'+cloud.key} />);
+  incrementScore() {
+    let newScore = this.state.score+1;
+    this.setState({
+      score: newScore
     });
-    return c;
+  }
+
+  render() {
+    this.cloudRefs = [];
+    return [
+        <Text key={0} style={[styles.scoreText,{opacity:this.props.gameStarted ? 1 : 0}]}>
+          Score: {this.state.score}
+        </Text>, 
+        this.state.clouds.map( (cloud) => {
+          return <Cloud 
+                    key={cloud.key} 
+                    id={cloud.key} 
+                    y={cloud.y} 
+                    speed={cloud.speed} 
+                    ref={(el) => {this.cloudRefs.push(el)}} 
+                    imgSrc={imgSrc} 
+                    offScreen={()=>this.incrementScore()}
+                  />;
+        })
+    ];
 
   }
 }
+
+const styles = StyleSheet.create({
+  scoreText: {
+    fontSize: 25,
+    color: '#fff',
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    zIndex: 3,
+    backgroundColor: 'transparent'
+  }
+});
+
 
 module.exports = CloudManager;

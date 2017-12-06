@@ -2,8 +2,9 @@ import React from 'react';
 import { Image, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 
 const deviceHeight = Dimensions.get('window').height;
-const defaultX = 20;
-const defaultY = 40;
+const hiddenY = -70;
+const defaultX = 50;
+const defaultY = 50;
 
 class Bird extends React.Component {
 
@@ -12,66 +13,111 @@ class Bird extends React.Component {
         this.imgSrc = require('./resources/bird.png');
         this.width = 70;
         this.height = 70;
+        this.jumpAnimation = null;
+        this.idleAnimationHandle = null;
         this.state = {
             x: new Animated.Value(defaultX),
-            y: new Animated.Value(defaultY),
+            y: new Animated.Value(hiddenY),
             rotate: new Animated.Value(0)
         };
         this.state.x.addListener(({value}) => this._value = value);
         this.state.y.addListener(({value}) => this._value = value);
     }
 
+    componentDidUpdate() {
+      this.idleAnimation(this.props.gameStarted);
+    }
+
     componentDidMount() {
       //this.props.onRef(this);
-      this.idleAnimation();
     }
     componentWillUnmount() {
       this.props.onRef(undefined);
     }
 
-    getDimensions() {
-      return [this.state.x._value, this.state.y._value, this.width, this.height];
+    gameOverAnimation() {
+      console.log('game over animating...')
+      Animated.parallel([
+        Animated.timing(
+          this.state.y,
+          {
+            toValue: deviceHeight,
+            duration: 1000
+          }
+        ),
+        Animated.timing(
+          this.state.rotate,
+          {
+            toValue: 360,
+            duration: 1000
+          }
+        )
+      ]).start(() => {
+        this.setState({
+          x: new Animated.Value(defaultX),
+          y: new Animated.Value(hiddenY),
+          rotate: new Animated.Value(0)
+        });
+        console.log('resetting bird')
+      });
     }
 
-    idleAnimation() {
-      Animated.sequence([
+    gameOver() {
+      this.gameOverAnimation();
+    }
+
+    getDimensions() {
+      return {
+        x: this.state.x._value, 
+        y: this.state.y._value, 
+        width: this.width, 
+        height: this.height
+      };
+    }
+
+    idleAnimation(run=true) {
+      if(!run) 
+        return;
+      this.idleAnimationHandle = Animated.sequence([
         Animated.timing(
           this.state.rotate,
           {
             toValue: 20,
-            duration: 1000,
-            useNativeDriver: true
+            duration: 1000
           }
         ),
         Animated.timing(
           this.state.rotate,
           {
             toValue: 0,
-            duration: 1000,
-            useNativeDriver: true
+            duration: 1000
           }
         )
       ]).start(() => {
-        this.idleAnimation();
+        this.idleAnimation(!this.props.gameOver);
       });
     }
 
-    jump() {
-      Animated.sequence([
+    jump(override=false) {
+      if(!this.props.gameStarted && !override)
+        return;
+
+      /*if(this.jumpAnimation)
+        this.jumpAnimation.stop();*/
+
+      this.jumpAnimation = Animated.sequence([
         Animated.timing(
           this.state.y,
           {
-            toValue: 260,
-            duration: 1100,
-            useNativeDriver: true
+            toValue: deviceHeight-300,
+            duration: 1000
           }
         ),
         Animated.timing(
           this.state.y,
           {
             toValue: defaultY,
-            duration: 1100,
-            useNativeDriver: true
+            duration: 1000
           }
         )
       ]).start();
@@ -86,11 +132,9 @@ class Bird extends React.Component {
       return [
           styles.bird, 
           {
-              transform: [
-                { translateX: this.state.x },
-                { translateY: this.state.y },
-                { rotate: spin }
-              ]
+            left: this.state.x,
+            top: this.state.y,
+            transform: [{ rotate: spin }]
           }
       ];
     }
@@ -108,12 +152,11 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     position: 'absolute',
-    top: defaultY,
+    top: hiddenY,
     left: defaultX,
     zIndex: 1,
-    borderWidth: 1,
-    borderColor: '#ff0000',
-    borderRadius: 15
+    //borderWidth: 1,
+    //borderColor: '#ff0000'
   }
 });
 
