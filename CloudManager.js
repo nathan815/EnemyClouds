@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
-import Bird from './Bird';
 import Cloud from './Cloud';
 
 const firstY = 40;

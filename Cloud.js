@@ -26,10 +26,6 @@ class Cloud extends React.Component {
         this.startMoving();
     }
 
-    componentDidMount() {
-      
-    }
-
     isInViewport() {
       return (this.state.x._value + this.width > 0) && this.state.x._value < deviceWidth;
     }
@@ -40,8 +36,7 @@ class Cloud extends React.Component {
         y: this.state.y._value,
         width: this.width, 
         height: this.height,
-        inViewport: this.isInViewport(),
-        id: this.props.id
+        inViewport: this.isInViewport()
       };
     }
 
@@ -84,8 +79,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 79,
     zIndex: 2
-    //borderWidth: 1,
-    //borderColor: '#ff0000'
   }
 });
 

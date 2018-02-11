@@ -16,10 +16,10 @@ class Bird extends React.Component {
         this.jumpAnimation = null;
         this.idleAnimationHandle = null;
         this.state = {
-            x: new Animated.Value(defaultX),
-            y: new Animated.Value(hiddenY),
-            rotate: new Animated.Value(0)
-        };
+        x: new Animated.Value(defaultX),
+        y: new Animated.Value(hiddenY),
+        rotate: new Animated.Value(0)
+      };
         this.state.x.addListener(({value}) => this._value = value);
         this.state.y.addListener(({value}) => this._value = value);
     }
@@ -28,11 +28,23 @@ class Bird extends React.Component {
       this.idleAnimation(this.props.gameStarted);
     }
 
-    componentDidMount() {
-      //this.props.onRef(this);
-    }
-    componentWillUnmount() {
-      this.props.onRef(undefined);
+    begin() {
+      Animated.sequence([
+        Animated.timing(
+          this.state.y,
+          {
+            toValue: defaultY+100,
+            duration: 1000
+          }
+        ),
+        Animated.timing(
+          this.state.y,
+          {
+            toValue: defaultY,
+            duration: 1000
+          }
+        )
+      ]).start();
     }
 
     gameOverAnimation() {
@@ -74,7 +86,7 @@ class Bird extends React.Component {
     }
 
     idleAnimation(run=true) {
-      if(!run) 
+      if(!this.props.gameStarted) 
         return;
       this.idleAnimationHandle = Animated.sequence([
         Animated.timing(
@@ -92,16 +104,13 @@ class Bird extends React.Component {
           }
         )
       ]).start(() => {
-        this.idleAnimation(!this.props.gameOver);
+        this.idleAnimation();
       });
     }
 
     jump(override=false) {
       if(!this.props.gameStarted && !override)
         return;
-
-      /*if(this.jumpAnimation)
-        this.jumpAnimation.stop();*/
 
       this.jumpAnimation = Animated.sequence([
         Animated.timing(
@@ -132,7 +141,7 @@ class Bird extends React.Component {
           {
             left: this.state.x,
             top: this.state.y,
-            transform: [{ rotate: spin }]
+            transform: [{rotate:spin}]
           }
       ];
     }

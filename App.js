@@ -1,5 +1,5 @@
 import React from 'react';
-import { 
+import {
   StyleSheet, 
   Text, 
   Image, 
@@ -57,10 +57,10 @@ export default class Game extends React.Component {
         let birdDim = this.refs.bird.getDimensions();
 
         if(cloud.inViewport &&
-           birdDim.x < cloud.x+cloud.width && 
+           birdDim.x < cloud.x+cloud.width+5 && 
            birdDim.x + birdDim.width > cloud.x &&
-           birdDim.y < cloud.y + cloud.height &&
-           birdDim.height + birdDim.y > cloud.y) {
+           birdDim.y < cloud.y + cloud.height+5 &&
+           birdDim.y + birdDim.height > cloud.y) {
           this.gameOver();
         }
 
@@ -108,7 +108,7 @@ export default class Game extends React.Component {
       gameOver: false
     });
     this.hideStartScreen();
-    this.refs.bird.jump(true);
+    this.refs.bird.begin();
     this.refs.cloudManager.begin();
   }
 
